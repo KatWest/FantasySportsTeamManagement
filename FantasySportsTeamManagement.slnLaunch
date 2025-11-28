@@ -1,0 +1,19 @@
+[
+  {
+    "Name": "Fantasy Sports Team Startup",
+    "Projects": [
+      {
+        "Path": "TeamManagementService\\TeamManagementService.csproj",
+        "Action": "Start"
+      },
+      {
+        "Path": "PlayerManagementService\\PlayerManagementService.csproj",
+        "Action": "Start"
+      },
+      {
+        "Path": "PerformanceTrackingService\\PerformanceTrackingService.csproj",
+        "Action": "Start"
+      }
+    ]
+  }
+]
