@@ -1,4 +1,14 @@
+using Microsoft.EntityFrameworkCore;
+using PerformanceTrackingService.Data;
+
 var builder = WebApplication.CreateBuilder(args);
+
+// adding services to the container
+builder.Services.AddDbContext<PerformanceContext>(options =>
+{
+    options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection"));
+});
+
 
 // Add services to the container.
 
@@ -21,5 +31,12 @@ app.UseHttpsRedirection();
 app.UseAuthorization();
 
 app.MapControllers();
+
+
+using (var scope = app.Services.CreateScope())
+{
+    var db = scope.ServiceProvider.GetRequiredService<PerformanceContext>();
+    db.Database.Migrate();
+}
 
 app.Run();
