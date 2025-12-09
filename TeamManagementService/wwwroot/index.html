@@ -108,17 +108,17 @@
     <script>
         // Service URLS ----------------------------------------------------------------------------
 
-        const apiBaseUrl = "https://fantasyteammanagementservice.azurewebsites.net/index.html"; // Replace with your deployed API URL
-        // const PLAYER_SERVICE_URL = '';
-        // const TEAM_SERVICE_URL = 'https://localhost:7075';
-        // const PERFORMANCE_SERVICE_URL = '';
+        // const apiBaseUrl = ""; // Replace with your deployed API URL
+        const PLAYER_SERVICE_URL = "https://fantasyplayerservice.azurewebsites.net";
+        const TEAM_SERVICE_URL = "https://fantasyteammanagementservice.azurewebsites.net";
+        const PERFORMANCE_SERVICE_URL = "https://fantasyperformanceservice.azurewebsites.net";
 
         // Create a new team
         document.getElementById("create-team-form").addEventListener("submit", async (e) => {
             e.preventDefault();
             const teamName = document.getElementById("team-name").value;
 
-            const response = await fetch(`${apiBaseUrl}/teams`, {
+            const response = await fetch(`${TEAM_SERVICE_URL}/api/team`, {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({ teamName })
@@ -134,11 +134,10 @@
             const playerId = document.getElementById("player-id").value;
             const teamId = document.getElementById("team-id").value;
 
-            const response = await fetch(`${apiBaseUrl}/players/draft`, {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ playerId: Number(playerId), teamId: Number(teamId) })
+            const response = await fetch(`${PLAYER_SERVICE_URL}/api/player/draft?id=${playerId}`, {
+                method: "POST"
             });
+
 
             const result = await response.json();
             document.getElementById("player-results").innerHTML = `<pre>${JSON.stringify(result, null, 2)}</pre>`;
@@ -146,7 +145,11 @@
 
         // Simulate competition
         document.getElementById("simulate-competition").addEventListener("click", async () => {
-            const response = await fetch(`${apiBaseUrl}/competitions/simulate`, { method: "POST" });
+            const response = await fetch(`${PERFORMANCE_SERVICE_URL}/api/playerstats/simulate`, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ playerIds: [1, 2, 3] })
+            });
             const result = await response.json();
             document.getElementById("competition-results").innerHTML = `<pre>${JSON.stringify(result, null, 2)}</pre>`;
         });
