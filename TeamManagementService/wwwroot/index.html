@@ -105,6 +105,13 @@
         <div class="results" id="leaderboard-results"></div>
     </section>
 
+    <!-- Added this to show player stats -->
+    <section id="players-stats">
+        <h2>Players & Latest Stats</h2>
+        <button id="refresh-players-stats">Refresh Players & Stats</button>
+        <div class="results" id="players-stats-results"></div>
+    </section>
+
     <script>
         // Service URLS ----------------------------------------------------------------------------
 
@@ -160,6 +167,96 @@
             const result = await response.json();
             document.getElementById("leaderboard-results").innerHTML = `<pre>${JSON.stringify(result, null, 2)}</pre>`;
         });
+
+        // Added function to Load Stats for each player
+        async function loadPlayersWithStats() {
+            const resultsDiv = document.getElementById("players-stats-results");
+            resultsDiv.innerHTML = "Loading...";
+
+            try {
+                // Get all players
+                const playersResponse = await fetch(`${PLAYER_SERVICE_URL}/api/Player`);
+                if (!playersResponse.ok) {
+                    throw new Error(`Error fetching players: ${playersResponse.status}`);
+                }
+                const players = await playersResponse.json();
+
+                // Get stats
+                const statsResponse = await fetch(`${PERFORMANCE_SERVICE_URL}/api/PlayerStats`);
+                if (!statsResponse.ok) {
+                    throw new Error(`Error fetching stats: ${statsResponse.status}`);
+                }
+                const stats = await statsResponse.json();
+
+                // Make lastest stat by playerID
+                const latestStatByPlayerId = {};
+
+                for (const stat of stats) {
+                    const pid = stat.playerId;
+                    const current = latestStatByPlayerId[pid];
+
+                    // If none stored yet OR this gameDate is newer, replace it
+                    if (!current || new Date(stat.gameDate) > new Date(current.gameDate)) {
+                        latestStatByPlayerId[pid] = stat;
+                    }
+                }
+
+                // Building the table
+                let html = `
+            <table>
+                <thead>
+                    <tr>
+                        <th>Player ID</th>
+                        <th>Player Name</th>
+                        <th>Drafted?</th>
+                        <th>Game Date</th>
+                        <th>Pass Yds</th>
+                        <th>Pass TD</th>
+                        <th>Rush Yds</th>
+                        <th>Rush TD</th>
+                        <th>Rec</th>
+                        <th>Rec Yds</th>
+                        <th>Rec TD</th>
+                        <th>Fumbles Lost</th>
+                        <th>Fantasy Pts</th>
+                    </tr>
+                </thead>
+                <tbody>
+        `;
+
+                for (const player of players) {
+                    const stat = latestStatByPlayerId[player.playerId];
+
+                    html += `
+                <tr>
+                    <td>${player.playerId}</td>
+                    <td>${player.playerName}</td>
+                    <td>${player.isDrafted ? "Yes" : "No"}</td>
+                    <td>${stat ? new Date(stat.gameDate).toLocaleString() : "-"}</td>
+                    <td>${stat ? stat.passingYards : "-"}</td>
+                    <td>${stat ? stat.passingTouchdowns : "-"}</td>
+                    <td>${stat ? stat.rushingYards : "-"}</td>
+                    <td>${stat ? stat.rushingTouchdowns : "-"}</td>
+                    <td>${stat ? stat.receptions : "-"}</td>
+                    <td>${stat ? stat.receivingYards : "-"}</td>
+                    <td>${stat ? stat.receivingTouchdowns : "-"}</td>
+                    <td>${stat ? stat.fumblesLost : "-"}</td>
+                    <td>${stat ? stat.fantasyPoints : "-"}</td>
+                </tr>
+            `;
+                }
+
+                html += `
+                </tbody>
+            </table>
+        `;
+
+                resultsDiv.innerHTML = html;
+            } catch (err) {
+                console.error(err);
+                resultsDiv.innerHTML = `<span class="error">${err.message}</span>`;
+            }
+        }
     </script>
 </body>
 </html>
