@@ -52,8 +52,6 @@ namespace PerformanceTrackingService.Controllers
                 }
 
                 await _context.SaveChangesAsync();
-
-                // TODO: Notify Leaderboard service when it exists.
                 return Ok(newStats);
             }
             catch (Exception ex)
