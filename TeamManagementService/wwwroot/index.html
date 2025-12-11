@@ -93,6 +93,12 @@
         <div class="results" id="player-results"></div>
     </section>
 
+    <section id="teams-players-overview">
+        <h2>Teams & Players</h2>
+        <button id="show-teams-players">Show All Teams & Players</button>
+        <div class="results" id="teams-players-results"></div>
+    </section>
+
     <section id="performance-tracking">
         <h2>Performance Tracking</h2>
         <button id="simulate-competition">Simulate Competition</button>
@@ -104,6 +110,8 @@
         <button id="view-leaderboard">View Leaderboard</button>
         <div class="results" id="leaderboard-results"></div>
     </section>
+
+
 
     <!-- Added this to show player stats -->
     <section id="players-stats">
@@ -152,13 +160,28 @@
 
         // Simulate competition
         document.getElementById("simulate-competition").addEventListener("click", async () => {
-            const response = await fetch(`${PERFORMANCE_SERVICE_URL}/api/playerstats/simulate`, {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ playerIds: [1, 2, 3] })
-            });
-            const result = await response.json();
-            document.getElementById("competition-results").innerHTML = `<pre>${JSON.stringify(result, null, 2)}</pre>`;
+            const resultsDiv = document.getElementById("competition-results");
+            resultsDiv.innerHTML = "Running simulation...";
+
+            try {
+                const response = await fetch(`${PERFORMANCE_SERVICE_URL}/api/playerstats/simulate`, {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ playerIds: [1, 2, 3] })
+                });
+
+                if (!response.ok) {
+                    // Show HTTP error codes (404, 500, etc.)
+                    const text = await response.text();
+                    throw new Error(`Error ${response.status}: ${text}`);
+                }
+
+                const result = await response.json();
+                resultsDiv.innerHTML = `<pre>${JSON.stringify(result, null, 2)}</pre>`;
+            } catch (err) {
+                console.error(err);
+                resultsDiv.innerHTML = `<span class="error">Simulation failed: ${err.message}</span>`;
+            }
         });
 
         // View leaderboard
@@ -203,53 +226,53 @@
 
                 // Building the table
                 let html = `
-            <table>
-                <thead>
-                    <tr>
-                        <th>Player ID</th>
-                        <th>Player Name</th>
-                        <th>Drafted?</th>
-                        <th>Game Date</th>
-                        <th>Pass Yds</th>
-                        <th>Pass TD</th>
-                        <th>Rush Yds</th>
-                        <th>Rush TD</th>
-                        <th>Rec</th>
-                        <th>Rec Yds</th>
-                        <th>Rec TD</th>
-                        <th>Fumbles Lost</th>
-                        <th>Fantasy Pts</th>
-                    </tr>
-                </thead>
-                <tbody>
-        `;
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Player ID</th>
+                                <th>Player Name</th>
+                                <th>Drafted?</th>
+                                <th>Game Date</th>
+                                <th>Pass Yds</th>
+                                <th>Pass TD</th>
+                                <th>Rush Yds</th>
+                                <th>Rush TD</th>
+                                <th>Rec</th>
+                                <th>Rec Yds</th>
+                                <th>Rec TD</th>
+                                <th>Fumbles Lost</th>
+                                <th>Fantasy Pts</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                `;
 
                 for (const player of players) {
                     const stat = latestStatByPlayerId[player.playerId];
 
                     html += `
-                <tr>
-                    <td>${player.playerId}</td>
-                    <td>${player.playerName}</td>
-                    <td>${player.isDrafted ? "Yes" : "No"}</td>
-                    <td>${stat ? new Date(stat.gameDate).toLocaleString() : "-"}</td>
-                    <td>${stat ? stat.passingYards : "-"}</td>
-                    <td>${stat ? stat.passingTouchdowns : "-"}</td>
-                    <td>${stat ? stat.rushingYards : "-"}</td>
-                    <td>${stat ? stat.rushingTouchdowns : "-"}</td>
-                    <td>${stat ? stat.receptions : "-"}</td>
-                    <td>${stat ? stat.receivingYards : "-"}</td>
-                    <td>${stat ? stat.receivingTouchdowns : "-"}</td>
-                    <td>${stat ? stat.fumblesLost : "-"}</td>
-                    <td>${stat ? stat.fantasyPoints : "-"}</td>
-                </tr>
-            `;
+                        <tr>
+                            <td>${player.playerId}</td>
+                            <td>${player.playerName}</td>
+                            <td>${player.isDrafted ? "Yes" : "No"}</td>
+                            <td>${stat ? new Date(stat.gameDate).toLocaleString() : "-"}</td>
+                            <td>${stat ? stat.passingYards : "-"}</td>
+                            <td>${stat ? stat.passingTouchdowns : "-"}</td>
+                            <td>${stat ? stat.rushingYards : "-"}</td>
+                            <td>${stat ? stat.rushingTouchdowns : "-"}</td>
+                            <td>${stat ? stat.receptions : "-"}</td>
+                            <td>${stat ? stat.receivingYards : "-"}</td>
+                            <td>${stat ? stat.receivingTouchdowns : "-"}</td>
+                            <td>${stat ? stat.fumblesLost : "-"}</td>
+                            <td>${stat ? stat.fantasyPoints : "-"}</td>
+                        </tr>
+                    `;
                 }
 
                 html += `
-                </tbody>
-            </table>
-        `;
+                        </tbody>
+                    </table>
+                `;
 
                 resultsDiv.innerHTML = html;
             } catch (err) {
@@ -257,6 +280,94 @@
                 resultsDiv.innerHTML = `<span class="error">${err.message}</span>`;
             }
         }
+
+        // Show all teams and players
+        document.getElementById("show-teams-players").addEventListener("click", async () => {
+            const resultsDiv = document.getElementById("teams-players-results");
+            resultsDiv.innerHTML = "Loading teams and players...";
+
+            try {
+                // Call both services at the same time
+                const [teamsResponse, playersResponse] = await Promise.all([
+                    fetch(`${TEAM_SERVICE_URL}/api/Team`),
+                    fetch(`${PLAYER_SERVICE_URL}/api/Player`)
+                ]);
+
+                if (!teamsResponse.ok) {
+                    throw new Error(`Error fetching teams: ${teamsResponse.status}`);
+                }
+                if (!playersResponse.ok) {
+                    throw new Error(`Error fetching players: ${playersResponse.status}`);
+                }
+
+                const teams = await teamsResponse.json();
+                const players = await playersResponse.json();
+
+                // Build Teams table
+                let html = `
+                <h3>Teams</h3>
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Team ID</th>
+                            <th>Team Name</th>
+                            <th>Created At</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+            `;
+
+                for (const team of teams) {
+                    html += `
+                    <tr>
+                        <td>${team.teamId}</td>
+                        <td>${team.teamName}</td>
+                        <td>${team.createdAt ? new Date(team.createdAt).toLocaleString() : "-"}</td>
+                    </tr>
+                `;
+                }
+
+                html += `
+                    </tbody>
+                </table>
+            `;
+
+                // Build Players table
+                html += `
+                <h3>Players</h3>
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Player ID</th>
+                            <th>Player Name</th>
+                            <th>Drafted?</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+            `;
+
+                for (const player of players) {
+                    html += `
+                    <tr>
+                        <td>${player.playerId}</td>
+                        <td>${player.playerName}</td>
+                        <td>${player.isDrafted ? "Yes" : "No"}</td>
+                    </tr>
+                `;
+                }
+
+                html += `
+                    </tbody>
+                </table>
+            `;
+
+                resultsDiv.innerHTML = html;
+            } catch (err) {
+                console.error(err);
+                resultsDiv.innerHTML = `<span class="error">${err.message}</span>`;
+            }
+        });
+
     </script>
 </body>
 </html>
